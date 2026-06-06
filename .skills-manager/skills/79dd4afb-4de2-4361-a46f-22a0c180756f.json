@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "79dd4afb-4de2-4361-a46f-22a0c180756f",
+  "path": "finishing-a-development-branch",
+  "path_key": "finishing-a-development-branch",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/finishing-a-development-branch",
+    "subpath": "skills\\finishing-a-development-branch",
+    "branch": null
+  }
+}

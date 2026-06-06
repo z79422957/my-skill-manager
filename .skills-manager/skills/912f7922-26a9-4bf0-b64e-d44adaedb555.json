@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "912f7922-26a9-4bf0-b64e-d44adaedb555",
+  "path": "mcp-builder",
+  "path_key": "mcp-builder",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/mcp-builder",
+    "subpath": "skills\\mcp-builder",
+    "branch": null
+  }
+}

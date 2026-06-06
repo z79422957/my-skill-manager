@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "63684ea0-9acd-482f-ad00-844259c97288",
+  "path": "executing-plans",
+  "path_key": "executing-plans",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/executing-plans",
+    "subpath": "skills\\executing-plans",
+    "branch": null
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "27ab935c-c0cb-445d-a8f8-e4e9e7a3ac5b",
+  "path": "chinese-git-workflow",
+  "path_key": "chinese-git-workflow",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/chinese-git-workflow",
+    "subpath": "skills\\chinese-git-workflow",
+    "branch": null
+  }
+}

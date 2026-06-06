@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "a92d0f13-1c6b-405d-9cd3-5fce53dee9d4",
+  "path": "brainstorming",
+  "path_key": "brainstorming",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/brainstorming",
+    "subpath": "skills\\brainstorming",
+    "branch": null
+  }
+}

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "scenario_id": "25e71574-171d-44f1-817d-9e0a6c6c7b4e",
-  "name": "Default",
+  "name": "superpowers-cn",
   "description": "Default startup scenario",
-  "icon": null,
-  "sort_order": 0
+  "icon": "briefcase",
+  "sort_order": 1
 }

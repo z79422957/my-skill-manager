@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "09e91e93-3863-4432-a527-22f889a4b836",
+  "path": "understand",
+  "path_key": "understand",
+  "enabled": true,
+  "tags": [
+    "Understand"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "lum1104/understand-anything/understand",
+    "subpath": "understand-anything-plugin\\skills\\understand",
+    "branch": null
+  }
+}

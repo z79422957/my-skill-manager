@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "ee5b6f04-0871-4dd1-97e4-a6c39f870cd2",
+  "path": "requesting-code-review",
+  "path_key": "requesting-code-review",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/requesting-code-review",
+    "subpath": "skills\\requesting-code-review",
+    "branch": null
+  }
+}

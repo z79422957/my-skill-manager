@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "f6897aa6-4f48-4549-9355-c0c8ef1f9396",
+  "path": "dispatching-parallel-agents",
+  "path_key": "dispatching-parallel-agents",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/dispatching-parallel-agents",
+    "subpath": "skills\\dispatching-parallel-agents",
+    "branch": null
+  }
+}

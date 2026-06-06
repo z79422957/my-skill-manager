@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "f4d7f486-6046-43c3-807b-6fc34e9a2f36",
+  "path": "understand-dashboard",
+  "path_key": "understand-dashboard",
+  "enabled": true,
+  "tags": [
+    "Understand"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "lum1104/understand-anything/understand-dashboard",
+    "subpath": "understand-anything-plugin\\skills\\understand-dashboard",
+    "branch": null
+  }
+}

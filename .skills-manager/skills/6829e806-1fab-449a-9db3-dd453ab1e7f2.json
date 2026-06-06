@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "6829e806-1fab-449a-9db3-dd453ab1e7f2",
+  "path": "understand-chat",
+  "path_key": "understand-chat",
+  "enabled": true,
+  "tags": [
+    "Understand"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "lum1104/understand-anything/understand-chat",
+    "subpath": "understand-anything-plugin\\skills\\understand-chat",
+    "branch": null
+  }
+}

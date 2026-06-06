@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "f42ac45f-8337-42a1-8c7f-e09f69901b60",
+  "path": "verification-before-completion",
+  "path_key": "verification-before-completion",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/verification-before-completion",
+    "subpath": "skills\\verification-before-completion",
+    "branch": null
+  }
+}

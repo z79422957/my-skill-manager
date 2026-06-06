@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "64ab531a-33f8-40a8-8d75-2b040fc98600",
+  "path": "systematic-debugging",
+  "path_key": "systematic-debugging",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/systematic-debugging",
+    "subpath": "skills\\systematic-debugging",
+    "branch": null
+  }
+}

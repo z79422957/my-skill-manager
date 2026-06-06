@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "e521c58c-4dd8-4071-98e8-4d360fe28ee3",
+  "path": "chinese-code-review",
+  "path_key": "chinese-code-review",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/chinese-code-review",
+    "subpath": "skills\\chinese-code-review",
+    "branch": null
+  }
+}

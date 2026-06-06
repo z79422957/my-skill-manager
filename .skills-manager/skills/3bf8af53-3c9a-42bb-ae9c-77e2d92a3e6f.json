@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "3bf8af53-3c9a-42bb-ae9c-77e2d92a3e6f",
+  "path": "writing-plans",
+  "path_key": "writing-plans",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/writing-plans",
+    "subpath": "skills\\writing-plans",
+    "branch": null
+  }
+}

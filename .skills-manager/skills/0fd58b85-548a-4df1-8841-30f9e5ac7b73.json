@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "0fd58b85-548a-4df1-8841-30f9e5ac7b73",
+  "path": "understand-onboard",
+  "path_key": "understand-onboard",
+  "enabled": true,
+  "tags": [
+    "Understand"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "lum1104/understand-anything/understand-onboard",
+    "subpath": "understand-anything-plugin\\skills\\understand-onboard",
+    "branch": null
+  }
+}

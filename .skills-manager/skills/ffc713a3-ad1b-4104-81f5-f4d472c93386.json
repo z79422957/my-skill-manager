@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "ffc713a3-ad1b-4104-81f5-f4d472c93386",
+  "path": "subagent-driven-development",
+  "path_key": "subagent-driven-development",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/subagent-driven-development",
+    "subpath": "skills\\subagent-driven-development",
+    "branch": null
+  }
+}

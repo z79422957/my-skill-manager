@@ -37,6 +37,29 @@ import { createRequire } from 'node:module';
 import { dirname, resolve, join, posix } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
+
+/**
+ * Read a list of files concurrently while preserving result order. Failures
+ * are returned in-place as `{ raw: null, err }` so callers can emit the same
+ * per-file warnings they did under the previous sequential `readFileSync`
+ * loops.
+ *
+ * `paths` is a list of `{ key, absPath }` pairs; `key` is whatever the caller
+ * wants to attach the result to (typically a project-relative POSIX path).
+ */
+async function readFilesParallel(paths) {
+  return Promise.all(
+    paths.map(async ({ key, absPath }) => {
+      try {
+        const raw = await readFile(absPath, 'utf-8');
+        return { key, raw, err: null };
+      } catch (err) {
+        return { key, raw: null, err };
+      }
+    }),
+  );
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 // skills/understand/ -> plugin root is two dirs up
@@ -180,20 +203,26 @@ function parseTsConfigText(raw) {
  *      where the stripper damaged a string literal containing `//`.
  *   3. If both fail, warn and skip — that tsconfig contributes no aliases.
  */
-function loadTsConfigs(projectRoot, files) {
+async function loadTsConfigs(projectRoot, files) {
   const out = new Map();
+  const warnings = [];
+  // Collect the candidate paths in the original file order before reading,
+  // so warning emit order matches the previous sequential implementation.
+  const candidates = [];
   for (const f of files) {
     const p = toPosix(f.path);
     const base = p.includes('/') ? p.slice(p.lastIndexOf('/') + 1) : p;
     if (base !== 'tsconfig.json') continue;
     const absPath = join(projectRoot, p);
     if (!existsSync(absPath)) continue;
-    let raw;
-    try {
-      raw = readFileSync(absPath, 'utf-8');
-    } catch (err) {
-      process.stderr.write(
-        `Warning: extract-import-map: tsconfig.json at ${absPath} failed ` +
+    candidates.push({ key: p, absPath });
+  }
+  const reads = await readFilesParallel(candidates);
+  for (const { key: p, raw, err } of reads) {
+    if (err) {
+      // absPath isn't carried through the helper return shape; reconstruct it.
+      warnings.push(
+        `Warning: extract-import-map: tsconfig.json at ${join(projectRoot, p)} failed ` +
         `to read (${err.message}) — path aliases from this config will ` +
         `not be applied — relative imports unaffected\n`,
       );
@@ -201,8 +230,8 @@ function loadTsConfigs(projectRoot, files) {
     }
     const parsed = parseTsConfigText(raw);
     if (!parsed) {
-      process.stderr.write(
-        `Warning: extract-import-map: tsconfig.json at ${absPath} failed ` +
+      warnings.push(
+        `Warning: extract-import-map: tsconfig.json at ${join(projectRoot, p)} failed ` +
         `to parse — path aliases from this config will not be applied ` +
         `— relative imports unaffected\n`,
       );
@@ -210,7 +239,7 @@ function loadTsConfigs(projectRoot, files) {
     }
     out.set(dirOf(p), parsed);
   }
-  return out;
+  return { configs: out, warnings };
 }
 
 /**
@@ -237,20 +266,26 @@ function loadTsConfigs(projectRoot, files) {
  * The resolver uses each module's prefix to translate
  * `import "github.com/foo/bar/x"` into the project-internal `x/<file>.go`.
  */
-function loadGoModules(projectRoot, files) {
+async function loadGoModules(projectRoot, files) {
   const out = new Map();
+  // loadGoModules currently emits no warnings (read failures are silently
+  // skipped — per-file resolvers surface "no ancestor go.mod" later), but
+  // the `{ data, warnings }` shape matches loadTsConfigs / loadPhpAutoloads
+  // so the concurrent caller in buildResolutionContext can drain them
+  // uniformly in canonical order.
+  const warnings = [];
+  const candidates = [];
   for (const f of files) {
     const p = toPosix(f.path);
     const base = p.includes('/') ? p.slice(p.lastIndexOf('/') + 1) : p;
     if (base !== 'go.mod') continue;
     const absPath = join(projectRoot, p);
     if (!existsSync(absPath)) continue;
-    let raw;
-    try {
-      raw = readFileSync(absPath, 'utf-8');
-    } catch {
-      continue;
-    }
+    candidates.push({ key: p, absPath });
+  }
+  const reads = await readFilesParallel(candidates);
+  for (const { key: p, raw, err } of reads) {
+    if (err) continue;
     let moduleName = '';
     for (const line of raw.split(/\r?\n/)) {
       const trimmed = line.replace(/\/\/.*$/, '').trim();
@@ -261,7 +296,7 @@ function loadGoModules(projectRoot, files) {
     if (!moduleName) continue;
     out.set(dirOf(p), moduleName);
   }
-  return out;
+  return { modules: out, warnings };
 }
 
 /**
@@ -306,10 +341,32 @@ function findNearestConfigDir(startDir, configMap) {
  *
  * Build once; pass everywhere.
  */
-function buildResolutionContext(projectRoot, files) {
+async function buildResolutionContext(projectRoot, files) {
   const fileSet = new Set(files.map(f => toPosix(f.path)));
-  const tsConfigs = loadTsConfigs(projectRoot, files);
-  const goModules = loadGoModules(projectRoot, files);
+
+  // The three config-loader passes are independent and each does its own
+  // batched parallel I/O; run them concurrently so the wait for a slow
+  // tsconfig.json read doesn't block go.mod / composer.json scanning.
+  //
+  // Each loader BUFFERS warnings into a private array rather than writing
+  // them to stderr inline. If a loader streamed warnings directly during
+  // the concurrent passes, lines from independent loader families could
+  // interleave based on I/O timing — that would break the pre-PR
+  // deterministic order (ts → go → php) and make stderr-diff verification
+  // flaky. Drain the buffers in canonical order *after* Promise.all, so
+  // a fixture with `(malformed tsconfig.json, malformed composer.json)`
+  // always emits `tsconfig…\ncomposer…\n`, never the reverse.
+  const [tsResult, goResult, phpResult] = await Promise.all([
+    loadTsConfigs(projectRoot, files),
+    loadGoModules(projectRoot, files),
+    loadPhpAutoloads(projectRoot, files),
+  ]);
+  for (const w of tsResult.warnings) process.stderr.write(w);
+  for (const w of goResult.warnings) process.stderr.write(w);
+  for (const w of phpResult.warnings) process.stderr.write(w);
+  const tsConfigs = tsResult.configs;
+  const goModules = goResult.modules;
+  const phpAutoloads = phpResult.autoloads;
 
   // Index .go files by their parent directory so the Go resolver can
   // expand a package-level import to all member .go files in O(1).
@@ -330,10 +387,6 @@ function buildResolutionContext(projectRoot, files) {
   const javaIndex = buildSuffixIndex(files, p => p.endsWith('.java'));
   const kotlinIndex = buildSuffixIndex(files, p => p.endsWith('.kt'));
   const csIndex = buildSuffixIndex(files, p => p.endsWith('.cs'));
-  const csTypeIndex = buildCSharpTypeIndex(files);
-  const etPackageDeps = loadEtPackageDependencies(projectRoot, files);
-
-  const phpAutoloads = loadPhpAutoloads(projectRoot, files);
 
   return {
     projectRoot,
@@ -344,82 +397,12 @@ function buildResolutionContext(projectRoot, files) {
     javaIndex,
     kotlinIndex,
     csIndex,
-    csTypeIndex,
-    etPackageDeps,
     phpAutoloads,
     // Dedupe Sets for one-time-per-file warnings. Keyed by importer file
     // path. Mutated by resolvers.
     _warnedNoRustCrateRoot: new Set(),
     _warnedNoGoModule: new Set(),
   };
-}
-
-function buildCSharpTypeIndex(files) {
-  const idx = new Map();
-  for (const f of files) {
-    const p = toPosix(f.path);
-    if (!p.endsWith('.cs')) continue;
-    const fileName = p.slice(p.lastIndexOf('/') + 1);
-    const typeName = fileName.replace(/\.cs$/i, '');
-    if (!typeName) continue;
-    if (!idx.has(typeName)) idx.set(typeName, []);
-    idx.get(typeName).push(p);
-  }
-  for (const arr of idx.values()) {
-    arr.sort((a, b) => a.localeCompare(b));
-  }
-  return idx;
-}
-
-const CSHARP_IDENTIFIER_RE = /\b[A-Z][A-Za-z0-9_]*\b/g;
-
-function extractCSharpTypeCandidates(content) {
-  const seen = new Set();
-  const out = [];
-  let m;
-  CSHARP_IDENTIFIER_RE.lastIndex = 0;
-  while ((m = CSHARP_IDENTIFIER_RE.exec(content)) !== null) {
-    const name = m[0];
-    if (seen.has(name)) continue;
-    seen.add(name);
-    out.push(name);
-  }
-  return out;
-}
-
-function getEtPackageName(filePath) {
-  const p = toPosix(filePath);
-  const match = /^Packages\/([^/]+)\//.exec(p);
-  if (!match) return null;
-  const name = match[1];
-  if (name.startsWith('cn.etetet.') || name === 'com.etetet.init') {
-    return name;
-  }
-  return null;
-}
-
-function loadEtPackageDependencies(projectRoot, files) {
-  const out = new Map();
-  const packageJsonFiles = files
-    .map(f => toPosix(f.path))
-    .filter(p => /^Packages\/[^/]+\/package\.json$/.test(p));
-
-  for (const relPath of packageJsonFiles) {
-    const packageName = getEtPackageName(relPath);
-    if (!packageName) continue;
-    try {
-      const raw = readFileSync(join(projectRoot, relPath), 'utf8');
-      const parsed = JSON.parse(raw);
-      const deps = Object.keys(parsed?.dependencies ?? {})
-        .filter(name => name.startsWith('cn.etetet.') || name === 'com.etetet.init')
-        .sort((a, b) => a.localeCompare(b));
-      out.set(packageName, deps);
-    } catch {
-      out.set(packageName, []);
-    }
-  }
-
-  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -950,62 +933,8 @@ export function resolveKotlinImport(rawImport, _file, ctx) {
 // dotted path against the .cs index the same way Java/Kotlin do.
 // ---------------------------------------------------------------------------
 
-export function resolveCSharpImport(rawImport, file, ctx) {
-  const directMatches = resolveDottedFqn(rawImport, '.cs', ctx.csIndex);
-  if (directMatches.length > 0) {
-    return directMatches;
-  }
-
-  const importerPackage = getEtPackageName(file.path);
-  if (!importerPackage) return [];
-
-  const depPackages = ctx.etPackageDeps.get(importerPackage) ?? [];
-  if (depPackages.length === 0) return [];
-
-  const lastSegment = rawImport?.split('.').filter(Boolean).at(-1);
-  if (!lastSegment) return [];
-
-  const candidates = ctx.csTypeIndex.get(lastSegment) ?? [];
-  if (candidates.length === 0) return [];
-
-  return candidates.filter(candidate => {
-    const candidatePackage = getEtPackageName(candidate);
-    return candidatePackage && depPackages.includes(candidatePackage);
-  });
-}
-
-function resolveEtCSharpTypeHints(file, content, ctx) {
-  if (file.language !== 'csharp') return [];
-  if (!/\bnamespace\s+ET(\.|;|\s|\{)/.test(content)) return [];
-
-  const importerPath = toPosix(file.path);
-  const importerPackage = getEtPackageName(importerPath);
-  const allowedPackages = new Set();
-  if (importerPackage) {
-    allowedPackages.add(importerPackage);
-    for (const dep of ctx.etPackageDeps.get(importerPackage) ?? []) {
-      allowedPackages.add(dep);
-    }
-  }
-
-  const ownTypeName = importerPath.slice(importerPath.lastIndexOf('/') + 1).replace(/\.cs$/i, '');
-  const resolved = new Set();
-  for (const typeName of extractCSharpTypeCandidates(content)) {
-    if (typeName === ownTypeName) continue;
-    const candidates = ctx.csTypeIndex.get(typeName) ?? [];
-    for (const candidate of candidates) {
-      if (candidate === importerPath) continue;
-      const candidatePackage = getEtPackageName(candidate);
-      if (allowedPackages.size > 0) {
-        if (candidatePackage && allowedPackages.has(candidatePackage)) {
-          resolved.add(candidate);
-        }
-      } else if (candidatePackage) {
-        resolved.add(candidate);
-      }
-    }
-  }
-  return [...resolved].sort((a, b) => a.localeCompare(b));
+export function resolveCSharpImport(rawImport, _file, ctx) {
+  return resolveDottedFqn(rawImport, '.cs', ctx.csIndex);
 }
 
 // ---------------------------------------------------------------------------
@@ -1154,20 +1083,23 @@ function parseComposerAutoloadText(raw) {
  * at the bad file and skips it. The rest of the project's PHP imports keep
  * resolving via whichever composer.json files parsed cleanly.
  */
-function loadPhpAutoloads(projectRoot, files) {
+async function loadPhpAutoloads(projectRoot, files) {
   const out = new Map();
+  const warnings = [];
+  const candidates = [];
   for (const f of files) {
     const p = toPosix(f.path);
     const base = p.includes('/') ? p.slice(p.lastIndexOf('/') + 1) : p;
     if (base !== 'composer.json') continue;
     const absPath = join(projectRoot, p);
     if (!existsSync(absPath)) continue;
-    let raw;
-    try {
-      raw = readFileSync(absPath, 'utf-8');
-    } catch (err) {
-      process.stderr.write(
-        `Warning: extract-import-map: composer.json at ${absPath} failed ` +
+    candidates.push({ key: p, absPath });
+  }
+  const reads = await readFilesParallel(candidates);
+  for (const { key: p, raw, err } of reads) {
+    if (err) {
+      warnings.push(
+        `Warning: extract-import-map: composer.json at ${join(projectRoot, p)} failed ` +
         `to read (${err.message}) — PSR-4 namespace mapping from this ` +
         `composer.json unavailable — PHP imports under this package ` +
         `will not resolve\n`,
@@ -1176,8 +1108,8 @@ function loadPhpAutoloads(projectRoot, files) {
     }
     const parsed = parseComposerAutoloadText(raw);
     if (parsed === null) {
-      process.stderr.write(
-        `Warning: extract-import-map: composer.json at ${absPath} failed ` +
+      warnings.push(
+        `Warning: extract-import-map: composer.json at ${join(projectRoot, p)} failed ` +
         `to parse — PSR-4 namespace mapping unavailable — PHP imports ` +
         `under this package will not resolve\n`,
       );
@@ -1185,7 +1117,7 @@ function loadPhpAutoloads(projectRoot, files) {
     }
     out.set(dirOf(p), parsed);
   }
-  return out;
+  return { autoloads: out, warnings };
 }
 
 /**
@@ -1547,8 +1479,10 @@ async function main() {
     );
   }
 
-  // Build resolution context (cached configs)
-  const ctx = buildResolutionContext(projectRoot, files);
+  // Build resolution context (cached configs). The loader pass for the
+  // tsconfig/go.mod/composer.json files inside is parallelised — see
+  // `buildResolutionContext`.
+  const ctx = await buildResolutionContext(projectRoot, files);
 
   const importMap = {};
   let filesWithImports = 0;
@@ -1620,12 +1554,6 @@ async function main() {
             if (out && ctx.fileSet.has(out)) {
               resolvedSet.add(out);
             }
-          }
-        }
-
-        for (const out of resolveEtCSharpTypeHints(file, content, ctx)) {
-          if (out && ctx.fileSet.has(out)) {
-            resolvedSet.add(out);
           }
         }
       }

@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "67425b89-d764-44cf-87a3-d0f77cd879df",
+  "path": "using-superpowers",
+  "path_key": "using-superpowers",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/using-superpowers",
+    "subpath": "skills\\using-superpowers",
+    "branch": null
+  }
+}

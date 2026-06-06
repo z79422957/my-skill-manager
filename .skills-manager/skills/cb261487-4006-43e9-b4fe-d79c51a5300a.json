@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "cb261487-4006-43e9-b4fe-d79c51a5300a",
+  "path": "writing-skills",
+  "path_key": "writing-skills",
+  "enabled": true,
+  "tags": [
+    "SuperPower-CN"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "jnmetacode/superpowers-zh/writing-skills",
+    "subpath": "skills\\writing-skills",
+    "branch": null
+  }
+}

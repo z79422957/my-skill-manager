@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "skill_id": "74b5fd89-edb0-4ce9-a28e-1fe7d02fee01",
+  "path": "understand-diff",
+  "path_key": "understand-diff",
+  "enabled": true,
+  "tags": [
+    "Understand"
+  ],
+  "source": {
+    "type": "skillssh",
+    "ref": "lum1104/understand-anything/understand-diff",
+    "subpath": "understand-anything-plugin\\skills\\understand-diff",
+    "branch": null
+  }
+}
