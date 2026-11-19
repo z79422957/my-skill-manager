@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "796ad539-13ed-4e6b-8440-cc4733a88c95",
+  "path": "ppt-master",
+  "path_key": "ppt-master",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "hugohe3/ppt-master/ppt-master",
+    "subpath": "skills\\ppt-master",
+    "branch": null
+  }
+}
