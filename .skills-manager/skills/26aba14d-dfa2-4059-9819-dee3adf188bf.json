@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "26aba14d-dfa2-4059-9819-dee3adf188bf",
+  "path": "pitch-narrative-builder",
+  "path_key": "pitch-narrative-builder",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "aaron-he-zhu/aaron-marketing-skills/pitch-narrative-builder",
+    "subpath": "narrative\\land\\pitch-narrative-builder",
+    "branch": null
+  }
+}

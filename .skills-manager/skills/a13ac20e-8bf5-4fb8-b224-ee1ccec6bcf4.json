@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "skill_id": "a13ac20e-8bf5-4fb8-b224-ee1ccec6bcf4",
+  "path": "strategic-narrative-designer",
+  "path_key": "strategic-narrative-designer",
+  "enabled": true,
+  "tags": [],
+  "source": {
+    "type": "skillssh",
+    "ref": "aaron-he-zhu/aaron-marketing-skills/strategic-narrative-designer",
+    "subpath": "narrative\\architect\\strategic-narrative-designer",
+    "branch": null
+  }
+}
